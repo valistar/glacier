@@ -1,0 +1,4 @@
+#ifndef GLACIER_VAULT_H
+#define GLACIER_VAULT_H
+
+#endif //GLACIER_VAULT_H
