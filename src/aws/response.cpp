@@ -1,8 +1,6 @@
-//
-// Created by Valistar on 5/27/2015.
-//
-
 #include "response.h"
+
+#include <boost/log/trivial.hpp>
 
 aws::Response::Response() {
 

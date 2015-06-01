@@ -3,12 +3,11 @@
 
 #include <string>
 
-namespace aws{
-    class Response {
-
-    public:
-        Response();
-    };
+namespace aws {
+class Response {
+ public:
+  Response();
+};
 }
 
 #endif //GLACIER_RESPONSE_H
