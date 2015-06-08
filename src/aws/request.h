@@ -8,6 +8,7 @@
 #include <curl/curl.h>
 #include <map>
 #include <string>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace aws {
 
@@ -17,19 +18,30 @@ struct OrderHeaders {
 
 class Request {
  public:
-  Request();
+  Request(std::string verb);
   void setHeader(std::string name, std::string value);
   void addBody();
   void setUrl(std::string url);
   void send();
   void getResponse();
+  static std::string headerToCanonical(std::string headerName);
 
  protected:
   std::map<std::string, std::string, OrderHeaders> headers;
-  std::string url;
   CURL *curl;
   std::string response_headers;
   std::string response_body;
+  void signRequest();
+
+ private:
+  const std::string verb;
+  boost::posix_time::ptime timestamp;
+  std::string protocol;
+  std::string host;
+  std::string uri;
+  std::string queryString;
+  std::string region;
+  std::string service;
 };
 
 } //namespace aws
