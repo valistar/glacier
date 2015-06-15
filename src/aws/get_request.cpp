@@ -4,7 +4,7 @@
 
 namespace aws {
 
-GetRequest::GetRequest() : Request("GET"){
+GetRequest::GetRequest() : Request("GET") {
 
 }
 

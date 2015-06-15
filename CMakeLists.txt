@@ -25,7 +25,8 @@ include_directories(${CURL_INCLUDE_DIRS} ${Boost_INCLUDE_DIR}) #TODO Whats this 
 set(SOURCE_FILES main.cpp src/aws/request.h src/aws/request.cpp src/aws/response.h src/aws/response.cpp src/aws/vault.h
 src/aws/archive.h src/aws/job.h  src/aws/get_request.h src/aws/get_request.cpp src/aws/post_request.h src/aws/post_request.cpp
 src/aws/delete_request.h src/aws/delete_request.cpp src/aws/put_request.h src/aws/put_request.cpp) #How do I make this pick up off include_directories?
-add_executable(Glacier ${SOURCE_FILES})
+set(HASH_LIB_FILES src/hash/hmac.h src/hash/sha256.h src/hash/sha256.cpp)
+add_executable(Glacier ${SOURCE_FILES} ${HASH_LIB_FILES})
 
 
 

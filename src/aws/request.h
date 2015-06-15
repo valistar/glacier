@@ -18,10 +18,15 @@ struct OrderHeaders {
 
 class Request {
  public:
-  Request(std::string verb);
+  explicit Request(std::string verb);
   void setHeader(std::string name, std::string value);
-  void addBody();
+  void addBody(std::string body);
+  void addBodyFile(std::string filepath);
   void setUrl(std::string url);
+  void setAccessKey(std::string key);
+  void setSecretKey(std::string key);
+  void selectRegion(std::string region);
+  void selectService(std::string service);
   void send();
   void getResponse();
   static std::string headerToCanonical(std::string headerName);
@@ -39,7 +44,12 @@ class Request {
   std::string protocol;
   std::string host;
   std::string uri;
-  std::string queryString;
+  std::string query_string;
+  std::string body;
+  FILE* bodyFile;
+  bool is_body_file;
+  std::string access_key;
+  std::string secret_key;
   std::string region;
   std::string service;
 };
