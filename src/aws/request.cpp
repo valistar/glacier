@@ -139,7 +139,11 @@ void Request::signRequest() {
   canonicalRequest += "\n" + signedHeaders += "\n";
   SHA256 sha256;
   if(this->is_body_file) { //TODO Files entirely untested.
-    char* buffer = (char*) malloc (sizeof(char)*1024); //TODO Something about unsigned being important here for hashing, check it.
+    SHA256 part_sha256;
+    std::vector<unsigned char> partBuffer;
+    partBuffer.reserve(SHA256::HashBytes);
+    std::vector<std::vector<unsigned char>> parts;
+    char* buffer = (char*) malloc (sizeof(char)*1024*1024); //TODO Something about unsigned being important here for hashing, check it.
     size_t read;
     size_t bufferSize = sizeof(buffer);
 
@@ -147,6 +151,8 @@ void Request::signRequest() {
       read = fread (buffer, 1, bufferSize, this->bodyFile);
       if(read > 0) {
         sha256.add(buffer, read);
+        part_sha256.getHash(&partBuffer[0]);
+        parts.push_back(partBuffer);
       }
       if(read != bufferSize) {
         if(ferror(this->bodyFile)) {
@@ -157,8 +163,37 @@ void Request::signRequest() {
     }
     free(buffer);
     canonicalRequest += sha256.getHash(); //TODO Will this act like hashing an empty string for an empty file?
+    this->setHeader("x-amz-content-sha256", sha256.getHash());
+
+    //Compute tree hash
+    int i;
+    int increment = 1;
+    size_t size = parts.size();
+    std::vector<unsigned char> treeBuffer;
+    treeBuffer.reserve(SHA256::HashBytes*2);
+    unsigned char* ptest;
+    while(true) { //TODO Test empty file.
+      for (i = 0; i < size; i += increment * 2) {
+        if (i + increment >= size - 1) {
+          //Odd number of elements.
+          continue;
+        }
+        //TODO Can probably change this now that using vectors
+        strcpy((char *) &treeBuffer[0], (char *) &parts[i][0]); //TODO Operator precedence?
+        strcat((char *) &treeBuffer[0], (char *) &parts[i + increment][0]);
+        part_sha256.reset();
+        part_sha256.add((void*)&treeBuffer[0], SHA256::HashBytes*2); //TODO See if void pointer cast is actually required...
+        part_sha256.getHash(&((parts[i])[0]));
+      }
+      increment *= 2;
+      if (increment > parts.size()) {
+        this->setHeader("x-amz-sha256-tree-hash", part_sha256.getHash());
+        break;
+      }
+    }
   }
   else {
+    //TODO Tree hash here?
     canonicalRequest += sha256(this->body);
   }
 
@@ -174,8 +209,8 @@ void Request::signRequest() {
   requestTimestamp << this->timestamp;
 
   std::stringstream requestDate;
-  boost::posix_time::time_facet dateFormat("%Y%m%d");
-  requestDate.imbue(std::locale(std::locale::classic(), &dateFormat));
+  boost::posix_time::time_facet* dateFormat = new boost::posix_time::time_facet("%Y%m%d");
+  requestDate.imbue(std::locale(std::locale::classic(), dateFormat));
   requestDate << this->timestamp;
 
   std::string scope = requestDate.str() + "/" + this->region + "/" + this->service + "/aws4_request";
@@ -204,8 +239,6 @@ void Request::signRequest() {
   BOOST_LOG_TRIVIAL(info) << std::endl << "Authorization: " <<  auth << std::endl;
 
   this->setHeader("Authorization", auth);
-
-
 }
 
 
@@ -229,6 +262,10 @@ void Request::send() {
     if (this->bodyFile == NULL) {
       //TODO Throw exception.
     }
+    //fstat(fileno(this->bodyFile));
+    curl_easy_setopt(curl, CURLOPT_POST, 1);
+    curl_easy_setopt(curl, CURLOPT_READDATA, this->bodyFile);
+    this->setHeader("Content-Length", "9"); //TODO DEV
 
   }
   this->signRequest();
@@ -240,7 +277,7 @@ void Request::send() {
   curl_easy_setopt(this->curl, CURLOPT_WRITEDATA, &this->response_body);
 
   curl_easy_setopt(this->curl, CURLOPT_SSL_VERIFYPEER, FALSE); //TODO Remove this. How do I make libcurl use the OS CA bundle? I don't want to distribute my own CA bundle...
-
+//http://curl.haxx.se/docs/sslcerts.html
 
   //TODO move this somewhere better. Maybe, signRequest. Maybe not.
   struct curl_slist *chunk = NULL; //TODO Needs to be freed somewhere, sometime

@@ -1,17 +1,21 @@
 #ifndef GLACIER_VAULT_H
 #define GLACIER_VAULT_H
 
+#include "delete_request.h"
+
 namespace aws {
 
 class Vault {
  public:
-  void empty();
-  void remove();
+  explicit Vault(std::string name);
+  explicit Vault(std::string id, std::string name, std::string description);
+  void empty(aws::DeleteRequest* request);
+  void remove(aws::DeleteRequest* request);
 
 
  private:
-  VaultAccessPolicy access_policy;
-  VaultNotificationConfig notification_config;
+  aws::VaultAccessPolicy access_policy;
+  aws::VaultNotificationConfig notification_config;
   std::string id;
   std::string description;
 
